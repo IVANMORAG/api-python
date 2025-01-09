@@ -3,6 +3,7 @@ from flask_socketio import SocketIO, emit
 from flask_cors import CORS
 import os
 import socket
+import base64
 
 def get_local_ip():
     try:
@@ -27,7 +28,7 @@ socketio = SocketIO(app,
     ping_interval=5000
 )
 
-UPLOAD_FOLDER = 'received_files'
+UPLOAD_FOLDER = 'cliente_files'
 if not os.path.exists(UPLOAD_FOLDER):
     os.makedirs(UPLOAD_FOLDER)
 
@@ -51,11 +52,11 @@ def handle_connect():
 def handle_file_received(data):
     try:
         filename = data['filename']
-        file_data = data['file_data']
-        
+        file_data = base64.b64decode(data['file_data'])  # Decodificar el archivo base64
+
         file_path = os.path.join(UPLOAD_FOLDER, filename)
         with open(file_path, 'wb') as f:
-            f.write(file_data.encode() if isinstance(file_data, str) else file_data)
+            f.write(file_data)
         
         print(f"Archivo recibido y guardado: {filename}")
         emit('file_saved', {
@@ -64,6 +65,8 @@ def handle_file_received(data):
         })
     except Exception as e:
         print(f"Error al guardar archivo: {str(e)}")
+        
+
 
 if __name__ == '__main__':
     print(f"Cliente iniciado en {CLIENT_IP}:{CLIENT_PORT}")

@@ -18,17 +18,10 @@ def get_local_ip():
 app = Flask(__name__)
 CORS(app)
 app.config['SECRET_KEY'] = 'secret!'
-
-# Configuración explícita de CORS para Socket.IO
-socketio = SocketIO(app, 
-    cors_allowed_origins="*",
-    ping_timeout=10000,
-    ping_interval=5000
-)
+socketio = SocketIO(app, cors_allowed_origins="*", ping_timeout=10000, ping_interval=5000)
 
 UPLOAD_FOLDER = 'received_files'
-if not os.path.exists(UPLOAD_FOLDER):
-    os.makedirs(UPLOAD_FOLDER)
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 SERVER_IP = get_local_ip()
 SERVER_PORT = 5000
@@ -42,8 +35,7 @@ def download_file(filename):
     file_path = os.path.join(UPLOAD_FOLDER, filename)
     if os.path.exists(file_path):
         return send_file(file_path, as_attachment=True)
-    else:
-        return "Archivo no encontrado", 404
+    return "Archivo no encontrado", 404
 
 @socketio.on('connect')
 def handle_connect():
@@ -70,7 +62,9 @@ def handle_file_transfer(data):
         print(f"Archivo recibido: {filename}")
     except Exception as e:
         print(f"Error al recibir archivo: {str(e)}")
+        
+
 
 if __name__ == '__main__':
     print(f"Servidor iniciado en {SERVER_IP}:{SERVER_PORT}")
-    socketio.run(app, host=SERVER_IP, port=SERVER_PORT, debug=True, allow_unsafe_werkzeug=True)
+    socketio.run(app, host=SERVER_IP, port=SERVER_PORT, debug=True)
