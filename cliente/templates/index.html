@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cliente - Transferencia de Archivos</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #202124;
+            color: #ffffff;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            background-color: #2d2d2d;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+        }
+        .status-bar {
+            text-align: center;
+            font-size: 18px;
+            margin-bottom: 20px;
+            padding: 10px;
+            background-color: #343a40;
+            border-radius: 5px;
+        }
+        .chat-box {
+            height: 300px;
+            overflow-y: auto;
+            border: 1px solid #444;
+            border-radius: 5px;
+            padding: 10px;
+            margin-bottom: 20px;
+            background-color: #373737;
+        }
+        .upload-section {
+            text-align: center;
+        }
+        .upload-section input[type="file"] {
+            margin-bottom: 10px;
+            padding: 5px;
+            border-radius: 5px;
+            background-color: #444;
+            color: #fff;
+            border: none;
+        }
+        .upload-section button {
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .upload-section button:hover {
+            background-color: #0056b3;
+        }
+        .file-message {
+            margin: 10px 0;
+            padding: 10px;
+            background-color: #444;
+            border-radius: 5px;
+        }
+        .file-message.received {
+            background-color: #2e7d32;
+            color: #ffffff;
+        }
+        a {
+            color: #00c8ff;
+            text-decoration: none;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="status-bar">
+            {{mode}} - Conectado a {{ip}}:{{port}}
+        </div>
+        
+        <div class="chat-box" id="chat-box"></div>
+        
+        <div class="upload-section">
+            <input type="file" id="file-input">
+            <button onclick="sendFile()">Enviar Archivo</button>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.5.4/socket.io.min.js"></script>
+    <script>
+        const serverUrl = `http://{{ip}}:{{port}}`;
+        console.log('Conectando a:', serverUrl);
+
+        const socket = io(serverUrl, {
+            transports: ['websocket'],
+            cors: {
+                origin: '*',
+            }
+        });
+
+        const mode = '{{mode}}';
+
+        socket.on('connect', () => {
+            console.log('Conectado al servidor');
+            addSystemMessage('Conexión establecida');
+        });
+
+        socket.on('disconnect', () => {
+            console.log('Desconectado del servidor');
+            addSystemMessage('Desconectado del servidor');
+        });
+
+        socket.on('file_saved', (data) => {
+            console.log('Archivo guardado:', data);
+            addFileMessage(data.filename, data.download_link);
+        });
+
+        function addSystemMessage(message) {
+            const chatBox = document.getElementById('chat-box');
+            const messageDiv = document.createElement('div');
+            messageDiv.style.textAlign = 'center';
+            messageDiv.style.color = '#999';
+            messageDiv.innerHTML = message;
+            chatBox.appendChild(messageDiv);
+        }
+
+        function addFileMessage(filename, downloadLink) {
+            const chatBox = document.getElementById('chat-box');
+            const message = document.createElement('div');
+            message.className = 'file-message received';
+            message.innerHTML = `
+                <strong>Archivo recibido:</strong> ${filename} 
+                <a href="${downloadLink}" download="${filename}">Descargar</a>
+            `;
+            chatBox.appendChild(message);
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+
+        function sendFile() {
+            const fileInput = document.getElementById('file-input');
+            const file = fileInput.files[0];
+            
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    console.log('Enviando archivo:', file.name);
+                    socket.emit('file_transfer', {
+                        filename: file.name,
+                        file_data: e.target.result,
+                        sender: mode
+                    });
+                };
+                reader.readAsArrayBuffer(file);
+                fileInput.value = '';
+            }
+        }
+        socket.on('file_received', (data) => {
+    console.log('Archivo recibido:', data);
+    addFileMessage(data.filename, data.timestamp, data.sender, data.size, data.download_url, 
+                  data.sender === mode ? 'sent' : 'received');
+});
+
+function addFileMessage(filename, timestamp, sender, size, downloadUrl, type) {
+    const chatBox = document.getElementById('chat-box');
+    const message = document.createElement('div');
+    message.className = `file-message ${type}`;
+    
+    const sizeInKB = (size / 1024).toFixed(2);
+    message.innerHTML = `
+        <strong>${sender}</strong>: <a href="${downloadUrl}" download>${filename}</a>
+        <div class="file-info">
+            ${sizeInKB} KB - ${timestamp}
+        </div>
+    `;
+    
+    chatBox.appendChild(message);
+    chatBox.scrollTop = chatBox.scrollHeight;
+}
+
+    </script>
+</body>
+</html>
