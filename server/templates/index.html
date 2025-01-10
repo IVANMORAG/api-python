@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cliente - Transferencia de Archivos</title>
+    <title>{{mode}} - Transferencia de Archivos</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -28,6 +29,17 @@
             background-color: #343a40;
             border-radius: 5px;
         }
+        .status-indicator {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 10px;
+            background-color: #dc3545;
+        }
+        .status-indicator.connected {
+            background-color: #28a745;
+        }
         .chat-box {
             height: 300px;
             overflow-y: auto;
@@ -47,6 +59,8 @@
             background-color: #444;
             color: #fff;
             border: none;
+            width: 80%;
+            max-width: 300px;
         }
         .upload-section button {
             padding: 10px 20px;
@@ -59,6 +73,10 @@
         .upload-section button:hover {
             background-color: #0056b3;
         }
+        .upload-section button:disabled {
+            background-color: #666;
+            cursor: not-allowed;
+        }
         .file-message {
             margin: 10px 0;
             padding: 10px;
@@ -67,7 +85,6 @@
         }
         .file-message.received {
             background-color: #2e7d32;
-            color: #ffffff;
         }
         a {
             color: #00c8ff;
@@ -76,11 +93,27 @@
         a:hover {
             text-decoration: underline;
         }
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background-color: #444;
+            border-radius: 10px;
+            margin: 10px 0;
+            display: none;
+        }
+        .progress-bar-fill {
+            height: 100%;
+            background-color: #007bff;
+            border-radius: 10px;
+            width: 0%;
+            transition: width 0.3s ease;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="status-bar">
+            <span class="status-indicator"></span>
             {{mode}} - Conectado a {{ip}}:{{port}}
         </div>
         
@@ -88,22 +121,50 @@
         
         <div class="upload-section">
             <input type="file" id="file-input">
-            <button onclick="sendFile()">Enviar Archivo</button>
+            <div class="progress-bar" id="progress-bar">
+                <div class="progress-bar-fill" id="progress-bar-fill"></div>
+            </div>
+            <button id="send-button" onclick="sendFile()">Enviar Archivo</button>
         </div>
-        
     </div>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.5.4/socket.io.min.js"></script>
     <script>
         const serverUrl = `http://{{ip}}:{{port}}`;
-        const socket = io(serverUrl);
+        const socket = io(serverUrl, {
+            transports: ['websocket'],
+            upgrade: false,
+            reconnection: true,
+            reconnectionAttempts: 5,
+            reconnectionDelay: 1000
+        });
+
+        const statusIndicator = document.querySelector('.status-indicator');
+        const sendButton = document.getElementById('send-button');
+        const progressBar = document.getElementById('progress-bar');
+        const progressBarFill = document.getElementById('progress-bar-fill');
 
         socket.on('connect', () => {
             console.log('Conectado al servidor');
+            statusIndicator.classList.add('connected');
+            sendButton.disabled = false;
+        });
+
+        socket.on('disconnect', () => {
+            console.log('Desconectado del servidor');
+            statusIndicator.classList.remove('connected');
+            sendButton.disabled = true;
+        });
+
+        socket.on('connect_error', (error) => {
+            console.log('Error de conexión:', error);
+            statusIndicator.classList.remove('connected');
+            sendButton.disabled = true;
         });
 
         socket.on('file_received', (data) => {
             addFileMessage(data.filename, data.timestamp, data.sender, data.size, data.download_url);
+            progressBar.style.display = 'none';
+            progressBarFill.style.width = '0%';
         });
 
         function sendFile() {
@@ -111,14 +172,36 @@
             const file = fileInput.files[0];
 
             if (file) {
+                sendButton.disabled = true;
+                progressBar.style.display = 'block';
+                progressBarFill.style.width = '0%';
+
                 const reader = new FileReader();
                 reader.onload = (e) => {
+                    const arrayBuffer = e.target.result;
+                    progressBarFill.style.width = '50%';
+                    
                     socket.emit('file_transfer', {
                         filename: file.name,
-                        file_data: e.target.result,
+                        file_data: arrayBuffer,
                         sender: '{{mode}}'
+                    }, (response) => {
+                        progressBarFill.style.width = '100%';
+                        setTimeout(() => {
+                            progressBar.style.display = 'none';
+                            sendButton.disabled = false;
+                            fileInput.value = '';
+                        }, 1000);
                     });
                 };
+
+                reader.onprogress = (event) => {
+                    if (event.lengthComputable) {
+                        const progress = (event.loaded / event.total) * 50;
+                        progressBarFill.style.width = progress + '%';
+                    }
+                };
+
                 reader.readAsArrayBuffer(file);
             }
         }
@@ -126,12 +209,13 @@
         function addFileMessage(filename, timestamp, sender, size, downloadUrl) {
             const chatBox = document.getElementById('chat-box');
             const message = document.createElement('div');
-            message.className = 'file-message';
+            message.className = 'file-message' + (sender !== '{{mode}}' ? ' received' : '');
             message.innerHTML = `
                 <strong>${sender}:</strong> <a href="${downloadUrl}" download>${filename}</a> 
                 (${(size / 1024).toFixed(2)} KB) - ${timestamp}
             `;
             chatBox.appendChild(message);
+            chatBox.scrollTop = chatBox.scrollHeight;
         }
     </script>
 </body>

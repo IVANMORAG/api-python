@@ -1,30 +1,20 @@
-from flask import Flask, render_template, send_file, request
+from flask import Flask, render_template, send_file
 from flask_socketio import SocketIO, emit
 from flask_cors import CORS
 import os
 from datetime import datetime
-import socket
 
-def get_local_ip():
-    try:
-        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        s.connect(("8.8.8.8", 80))
-        local_ip = s.getsockname()[0]
-        s.close()
-        return local_ip
-    except:
-        return "127.0.0.1"
+# IP fija para conexión directa por ethernet
+SERVER_IP = "192.168.1.2"
+SERVER_PORT = 5000
 
 app = Flask(__name__)
 CORS(app)
 app.config['SECRET_KEY'] = 'secret!'
-socketio = SocketIO(app, cors_allowed_origins="*", ping_timeout=10000, ping_interval=5000)
+socketio = SocketIO(app, cors_allowed_origins="*")
 
 UPLOAD_FOLDER = 'received_files'
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-
-SERVER_IP = get_local_ip()
-SERVER_PORT = 5000
 
 @app.route('/')
 def index():
@@ -49,22 +39,26 @@ def handle_file_transfer(data):
         sender = data['sender']
         
         file_path = os.path.join(UPLOAD_FOLDER, filename)
-        with open(file_path, 'wb') as f:
-            f.write(file_data.encode() if isinstance(file_data, str) else file_data)
         
+        with open(file_path, 'wb') as f:
+            if isinstance(file_data, str):
+                f.write(file_data.encode())
+            else:
+                f.write(file_data)
+        
+        download_url = f"http://{SERVER_IP}:{SERVER_PORT}/download/{filename}"
         emit('file_received', {
             'filename': filename,
             'sender': sender,
             'timestamp': datetime.now().strftime('%H:%M:%S'),
-            'size': len(file_data),
-            'download_url': f"http://{SERVER_IP}:{SERVER_PORT}/download/{filename}"
+            'size': os.path.getsize(file_path),
+            'download_url': download_url
         }, broadcast=True)
+        
         print(f"Archivo recibido: {filename}")
     except Exception as e:
         print(f"Error al recibir archivo: {str(e)}")
-        
-
 
 if __name__ == '__main__':
     print(f"Servidor iniciado en {SERVER_IP}:{SERVER_PORT}")
-    socketio.run(app, host=SERVER_IP, port=SERVER_PORT, debug=True)
+    socketio.run(app, host=SERVER_IP, port=SERVER_PORT, debug=True, allow_unsafe_werkzeug=True)
