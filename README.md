@@ -96,8 +96,8 @@ sudo apt install python3-venv
 
 2. Crear y acceder al directorio del proyecto:
 ```bash
-mkdir transferencia-archivos-servidor
-cd transferencia-archivos-servidor
+mkdir servidor
+cd servidor
 ```
 
 3. Crear el entorno virtual:
