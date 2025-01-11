@@ -159,7 +159,7 @@ sudo netplan apply
 ```
 
 ### 6. Archivos del Proyecto
-1. Crear `servidor.py` con el código proporcionado
+1. Crear `servidor.py` con el código de servidor
 2. Crear `templates/index.html` con el código de la interfaz
 
 ### 7. Ejecución
