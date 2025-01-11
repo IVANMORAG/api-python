@@ -194,10 +194,11 @@ python servidor.py
 ## Consideraciones Importantes
 
 1. Los firewalls de ambos sistemas deben permitir las conexiones en los puertos 5000 y 5001
-2. Asegurarse de que ambos sistemas estén en la misma subred
-3. El cable Ethernet debe estar correctamente conectado
-4. Los entornos virtuales deben estar activados antes de ejecutar los scripts
-5. Los permisos de los directorios deben estar correctamente configurados
+2. Configurar los ouertos de entrada
+3. Asegurarse de que ambos sistemas estén en la misma subred
+4. El cable Ethernet debe estar correctamente conectado
+5. Los entornos virtuales deben estar activados antes de ejecutar los scripts
+6. Los permisos de los directorios deben estar correctamente configurados
 
 ## Solución de Problemas Comunes
 
