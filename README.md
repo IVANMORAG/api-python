@@ -9,8 +9,8 @@
    
 2. Crear directorio del proyecto:
 ```bash
-mkdir transferencia-archivos-cliente
-cd transferencia-archivos-cliente
+mkdir cliente
+cd cliente
 ```
 
 ### 2. Configuración del Entorno Virtual
