@@ -122,7 +122,7 @@ pip install eventlet
 
 ### 4. Estructura de Directorios
 ```
-transferencia-archivos-servidor/
+servidor/
 ├── servidor.py
 ├── templates/
 │   └── index.html
