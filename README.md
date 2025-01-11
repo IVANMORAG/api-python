@@ -60,7 +60,7 @@ mkdir cliente_files
    - Puerta de enlace predeterminada: dejar vacío
 
 ### 6. Archivos del Proyecto
-1. Crear `cliente.py` con el código proporcionado
+1. Crear `cliente.py` con el código proporcionado en el proyecto
 2. Crear `templates/index.html` con el código de la interfaz
 
 ### 7. Ejecución
