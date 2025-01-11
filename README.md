@@ -36,7 +36,7 @@ pip install eventlet
 
 ### 4. Estructura de Directorios
 ```
-transferencia-archivos-cliente/
+cliente/
 ├── cliente.py
 ├── templates/
 │   └── index.html
