@@ -206,6 +206,7 @@ python servidor.py
    - Verificar la configuración IP en ambos sistemas
    - Comprobar el cable Ethernet
    - Verificar que los puertos no estén bloqueados
+   - Verificar que no esten conectados a alguna red de internet.
 
 2. Si los archivos no se transfieren:
    - Verificar los permisos de los directorios
